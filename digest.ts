@@ -98,10 +98,10 @@ Quality rules:
 - Each item must have a URL, publisher, and date (event date, registration deadline, or publication date).
 - Use category to indicate type and location, e.g. "Hackathon (Denver)", "Hackathon (Czech Republic)", "Programming Challenge (Swift)", "Hackathon (Near me)".
 - Prefer: Devpost, official hackathon sites, Apple/Google developer challenges, major coding competition platforms, Czech and Denver-area event listings.
-- Summary: max 2 sentences; mention location or "online" when relevant.
+- Summary: 5 to 10 sentences describing the hackathon or challenge in detail (what it is, who it's for, dates/deadlines, prizes or benefits, how to sign up); mention location or "online" when relevant.
 - Date: YYYY-MM-DD or relative (e.g. "deadline March 15, 2025").
 
-Return maximum ${stateMaxItems} items. If you don't find anything relevant for a location or category, still return what you find for others. Output language: ${stateLanguage} (cs = Czech, en = English).
+Find at least 10 items when possible (across all locations and challenge types); return up to ${stateMaxItems} items. If you don't find anything relevant for a location or category, still return what you find for others. Output language: ${stateLanguage} (cs = Czech, en = English).
 The output must exactly match the JSON schema (no additional text outside JSON).`;
 };
 const hackathonNewsAgent = new Agent<HackathonNewsContext, typeof HackathonNewsSchema>({
@@ -291,7 +291,7 @@ export const runWorkflow = async (workflow: WorkflowInput) => {
           Locations: ${state.locations.join("; ")}
           Programming challenges focus: ${state.challengeFocus.join("; ")}
           Time window: last ${state.recency_hours} hours (weekly digest)
-          Find hackathons in these locations and programming challenges (Swift, React, web) the user can sign up for. Return structured JSON with category indicating type and location (e.g. "Hackathon (Denver)", "Programming Challenge (Swift)"). Include event or deadline date for each item.`,
+          Find hackathons in these locations and programming challenges (Swift, React, web) the user can sign up for. Return at least 10 items when possible (up to the max). Return structured JSON with category indicating type and location (e.g. "Hackathon (Denver)", "Programming Challenge (Swift)"). For each item write a summary of 5 to 10 sentences: describe the hackathon/challenge in detail (what it is, who it's for, dates/deadlines, prizes or benefits, how to sign up). Include event or deadline date for each item.`,
             },
           ],
         },
