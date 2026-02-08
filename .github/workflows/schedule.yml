@@ -1,0 +1,53 @@
+name: Hackathon & Challenges Digest
+
+on:
+  schedule:
+    # Run once a week: Monday 8:00 AM Denver time (MST = GMT-7)
+    # 8 AM Denver = 15:00 UTC. Cron: minute hour day month day-of-week
+    - cron: "0 15 * * 1"
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          npm ci || {
+            echo "⚠️  npm ci failed, falling back to npm install..."
+            npm install
+          }
+
+      - name: Check environment variables
+        run: |
+          echo "Checking required environment variables..."
+          echo "OPENAI_API_KEY: $([ -n "${{ secrets.OPENAI_API_KEY }}" ] && echo '✅ Set' || echo '❌ Missing')"
+          echo "SMTP_USER: $([ -n "${{ secrets.SMTP_USER }}" ] && echo '✅ Set' || echo '❌ Missing')"
+          echo "RECIPIENT_EMAIL: $([ -n "${{ secrets.RECIPIENT_EMAIL }}" ] && echo '✅ Set' || echo '❌ Missing')"
+
+      - name: Run hackathon & challenges digest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          LANGUAGE: ${{ secrets.LANGUAGE }}
+          LOCATIONS: ${{ secrets.LOCATIONS }}
+          CHALLENGE_TOPICS: ${{ secrets.CHALLENGE_TOPICS }}
+          RECENCY_HOURS: ${{ secrets.RECENCY_HOURS }}
+          MAX_ITEMS: ${{ secrets.MAX_ITEMS }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        run: npm start
