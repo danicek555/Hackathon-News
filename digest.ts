@@ -102,7 +102,7 @@ Quality rules:
 - Date: YYYY-MM-DD or relative (e.g. "deadline March 15, 2025").
 
 Find at least 10 items when possible (across all locations and challenge types); return up to ${stateMaxItems} items. If you don't find anything relevant for a location or category, still return what you find for others. Output language: ${stateLanguage} (cs = Czech, en = English).
-The output must exactly match the JSON schema (no additional text outside JSON).`;
+The output must be exactly one valid JSON object matching the schema (no markdown, no extra text). Inside JSON strings do not use raw newlines; use spaces or \\n. Ensure every string is properly closed so the JSON is valid.`;
 };
 const hackathonNewsAgent = new Agent<HackathonNewsContext, typeof HackathonNewsSchema>({
   name: "Hackathon News Search Agent",
@@ -113,7 +113,7 @@ const hackathonNewsAgent = new Agent<HackathonNewsContext, typeof HackathonNewsS
   modelSettings: {
     temperature: 1,
     topP: 1,
-    maxTokens: 2048,
+    maxTokens: 16384, // Large enough for 10+ items with 5–10 sentence summaries
     store: true,
   },
 });
