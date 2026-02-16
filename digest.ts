@@ -40,7 +40,10 @@ const parseLocations = (v: string | undefined): string[] => {
     .filter(Boolean);
 };
 
-const parseRecipientEmails = (v: string | undefined, defaultEmail: string): string[] => {
+const parseRecipientEmails = (
+  v: string | undefined,
+  defaultEmail: string,
+): string[] => {
   if (!v) return [defaultEmail];
   const list = v
     .split(",")
@@ -65,7 +68,7 @@ const HackathonNewsSchema = z.object({
       url: z.string(),
       category: z.string(), // e.g. "Hackathon (Denver)", "Hackathon (Czech Republic)", "Programming Challenge (Swift)"
       date: z.string(), // Event/deadline or publication date
-    })
+    }),
   ),
 });
 interface HackathonNewsContext {
@@ -77,10 +80,15 @@ interface HackathonNewsContext {
 }
 const hackathonNewsInstructions = (
   runContext: RunContext<HackathonNewsContext>,
-  _agent: Agent<HackathonNewsContext, typeof HackathonNewsSchema>
+  _agent: Agent<HackathonNewsContext, typeof HackathonNewsSchema>,
 ) => {
-  const { stateRecencyHours, stateLocations, stateChallengeFocus, stateMaxItems, stateLanguage } =
-    runContext.context;
+  const {
+    stateRecencyHours,
+    stateLocations,
+    stateChallengeFocus,
+    stateMaxItems,
+    stateLanguage,
+  } = runContext.context;
   return `You are an agent for finding HACKATHONS and PROGRAMMING CHALLENGES the user can sign up for.
 You must use the web search tool. Do not respond from memory. Return only items that come from the search results (URLs must not be made up).
 
@@ -104,7 +112,10 @@ Quality rules:
 Find at least 10 items when possible (across all locations and challenge types); return up to ${stateMaxItems} items. If you don't find anything relevant for a location or category, still return what you find for others. Output language: ${stateLanguage} (cs = Czech, en = English).
 The output must be exactly one valid JSON object matching the schema (no markdown, no extra text). Inside JSON strings do not use raw newlines; use spaces or \\n. Ensure every string is properly closed so the JSON is valid.`;
 };
-const hackathonNewsAgent = new Agent<HackathonNewsContext, typeof HackathonNewsSchema>({
+const hackathonNewsAgent = new Agent<
+  HackathonNewsContext,
+  typeof HackathonNewsSchema
+>({
   name: "Hackathon News Search Agent",
   instructions: hackathonNewsInstructions,
   model: "gpt-4.1",
@@ -128,7 +139,7 @@ const formatEmailFromNews = (
     category: string;
     date: string;
   }>,
-  language: string = "en"
+  language: string = "en",
 ): { subject: string; body: string } => {
   if (items.length === 0) {
     return {
@@ -165,7 +176,7 @@ const formatEmailFromNews = (
 
   items.forEach((item, index) => {
     bodyLines.push(
-      `${index + 1}. [${item.category}] ${item.title} (${item.date})`
+      `${index + 1}. [${item.category}] ${item.title} (${item.date})`,
     );
     bodyLines.push(`   ${item.summary}`);
     bodyLines.push(`   Source: ${item.publisher} - ${item.url}`);
@@ -182,7 +193,7 @@ const formatEmailFromNews = (
 const sendEmail = async (
   to: string | string[],
   subject: string,
-  body: string
+  body: string,
 ): Promise<void> => {
   const recipients = Array.isArray(to) ? to : [to];
   const transporter = nodemailer.createTransport({
@@ -197,12 +208,12 @@ const sendEmail = async (
 
   if (!process.env.SMTP_USER) {
     throw new Error(
-      "SMTP_USER environment variable is required. Please set it in GitHub Secrets."
+      "SMTP_USER environment variable is required. Please set it in GitHub Secrets.",
     );
   }
   if (!process.env.SMTP_PASSWORD && !process.env.SMTP_APP_PASSWORD) {
     throw new Error(
-      "SMTP_PASSWORD or SMTP_APP_PASSWORD environment variable is required. Please set it in GitHub Secrets."
+      "SMTP_PASSWORD or SMTP_APP_PASSWORD environment variable is required. Please set it in GitHub Secrets.",
     );
   }
 
@@ -214,7 +225,9 @@ const sendEmail = async (
     html: body.replace(/\n/g, "<br>"), // Convert newlines to HTML breaks
   });
 
-  console.log(`Email sent successfully to ${recipients.join(", ")}! Message ID: ${info.messageId}`);
+  console.log(
+    `Email sent successfully to ${recipients.join(", ")}! Message ID: ${info.messageId}`,
+  );
 };
 
 type WorkflowInput = { input_as_text: string };
@@ -225,7 +238,7 @@ export const runWorkflow = async (workflow: WorkflowInput) => {
     // Validate required environment variables
     if (!process.env.OPENAI_API_KEY) {
       throw new Error(
-        "OPENAI_API_KEY environment variable is required. Please set it in GitHub Secrets."
+        "OPENAI_API_KEY environment variable is required. Please set it in GitHub Secrets.",
       );
     }
 
@@ -253,7 +266,7 @@ export const runWorkflow = async (workflow: WorkflowInput) => {
       must_include_sources: parseBool(process.env.MUST_INCLUDE_SOURCES, true),
       recipient_emails: parseRecipientEmails(
         process.env.RECIPIENT_EMAIL,
-        "danmitka@gmail.com"
+        "danmitka@gmail.com",
       ),
     };
 
@@ -304,10 +317,12 @@ export const runWorkflow = async (workflow: WorkflowInput) => {
           stateMaxItems: String(state.max_items),
           stateLanguage: state.language,
         },
-      }
+      },
     );
     conversationHistory.push(
-      ...newsSearchResultTemp.newItems.map((item: { rawItem: AgentInputItem }) => item.rawItem)
+      ...newsSearchResultTemp.newItems.map(
+        (item: { rawItem: AgentInputItem }) => item.rawItem,
+      ),
     );
 
     if (!newsSearchResultTemp.finalOutput) {
@@ -323,7 +338,7 @@ export const runWorkflow = async (workflow: WorkflowInput) => {
     if (newsSearchResult.output_parsed.items.length > 0) {
       const emailContent = formatEmailFromNews(
         newsSearchResult.output_parsed.items,
-        state.language
+        state.language,
       );
       const emailSubject = emailContent.subject;
 
@@ -331,13 +346,13 @@ export const runWorkflow = async (workflow: WorkflowInput) => {
       try {
         if (!process.env.SMTP_USER) {
           console.warn(
-            "⚠️  SMTP_USER not set. Skipping email send. Set SMTP secrets in GitHub to enable email."
+            "⚠️  SMTP_USER not set. Skipping email send. Set SMTP secrets in GitHub to enable email.",
           );
         } else {
           await sendEmail(
             state.recipient_emails,
             emailSubject,
-            emailContent.body
+            emailContent.body,
           );
           console.log(`✅ Email sent to ${state.recipient_emails.join(", ")}`);
           emailSent = true;
@@ -370,12 +385,17 @@ export const runWorkflow = async (workflow: WorkflowInput) => {
 if (typeof require !== "undefined" && require.main === module) {
   (async () => {
     try {
-      const input = process.argv[2] || "Find hackathons in Denver, Czech Republic, and near me; plus programming challenges (Swift, React, web) I can sign up for.";
+      const input =
+        process.argv[2] ||
+        "Find hackathons in Denver, Czech Republic, and near me; plus programming challenges (Swift, React, web) I can sign up for.";
       console.log(`Running workflow with input: "${input}"`);
       console.log(`Environment check:`, {
         hasOpenAIKey: !!process.env.OPENAI_API_KEY,
         hasSmtpUser: !!process.env.SMTP_USER,
-        recipientCount: parseRecipientEmails(process.env.RECIPIENT_EMAIL, "danmitka@gmail.com").length,
+        recipientCount: parseRecipientEmails(
+          process.env.RECIPIENT_EMAIL,
+          "danmitka@gmail.com",
+        ).length,
       });
       const result = await runWorkflow({ input_as_text: input });
       console.log("\nResult:", JSON.stringify(result, null, 2));
